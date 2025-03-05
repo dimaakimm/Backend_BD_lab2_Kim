@@ -2,18 +2,26 @@ package org.example;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class MainGUI extends JFrame {
-    private final DatabaseManager dbManager = new DatabaseManager();
+    private DatabaseManager dbManager;
+    private final JTextArea outputArea;
+    private String selectedDatabase;
 
     public MainGUI() {
         setTitle("Database Manager");
-        setSize(400, 400);
+        setSize(600, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(9, 1)); // Увеличено для новых кнопок
+        setLayout(new BorderLayout());
 
+        outputArea = new JTextArea();
+        outputArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(outputArea);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(10, 1));
+
+        JButton selectDbBtn = new JButton("Выбрать базу данных");
         JButton createDbBtn = new JButton("Создать базу данных");
         JButton deleteDbBtn = new JButton("Удалить базу данных");
         JButton clearTableBtn = new JButton("Очистить таблицу");
@@ -24,49 +32,73 @@ public class MainGUI extends JFrame {
         JButton createTableBtn = new JButton("Создать таблицу");
         JButton dropTableBtn = new JButton("Удалить таблицу");
 
-        createDbBtn.addActionListener(e -> dbManager.createDatabase());
-        deleteDbBtn.addActionListener(e -> dbManager.deleteDatabase());
-        clearTableBtn.addActionListener(e -> dbManager.clearTable());
-
-        addRecordBtn.addActionListener(e -> {
-            String name = JOptionPane.showInputDialog("Введите имя:");
-            if (name == null || name.isEmpty()) return;
-            String ageStr = JOptionPane.showInputDialog("Введите возраст:");
-            if (ageStr == null || ageStr.isEmpty()) return;
-            try {
-                int age = Integer.parseInt(ageStr);
-                dbManager.addRecord(name, age);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(null, "Ошибка: возраст должен быть числом!");
+        selectDbBtn.addActionListener(e -> {
+            String dbName = JOptionPane.showInputDialog("Введите имя базы данных для работы:");
+            if (dbName != null && !dbName.isEmpty()) {
+                selectedDatabase = dbName;
+                dbManager = new DatabaseManager(outputArea, selectedDatabase);
+                outputArea.append("Выбрана база данных: " + dbName + "\n");
             }
         });
 
+        createDbBtn.addActionListener(e -> {
+            String dbName = JOptionPane.showInputDialog("Введите имя новой базы данных:");
+            if (dbName != null && !dbName.isEmpty()) {
+                DatabaseManager.createDatabase(dbName);
+                outputArea.append("Создана база данных: " + dbName + "\n");
+            }
+        });
+
+        deleteDbBtn.addActionListener(e -> {
+            String dbName = JOptionPane.showInputDialog("Введите имя базы данных для удаления:");
+            if (dbName != null && !dbName.isEmpty()) {
+                DatabaseManager.deleteDatabase(dbName);
+                outputArea.append("Удалена база данных: " + dbName + "\n");
+            }
+        });
+
+        clearTableBtn.addActionListener(e -> {
+            String tableName = JOptionPane.showInputDialog("Введите имя таблицы для очистки:");
+            if (tableName != null && !tableName.isEmpty()) {
+                dbManager.clearTable(tableName);
+            }
+        });
+
+        addRecordBtn.addActionListener(e -> {
+            String tableName = JOptionPane.showInputDialog("Введите имя таблицы:");
+            if (tableName == null || tableName.isEmpty()) return;
+            String name = JOptionPane.showInputDialog("Введите имя:");
+            if (name == null || name.isEmpty()) return;
+            String description = JOptionPane.showInputDialog("Введите описание:");
+            if (description == null || description.isEmpty()) return;
+            dbManager.addRecord(tableName, name, description);
+        });
+
         searchBtn.addActionListener(e -> {
-            String name = JOptionPane.showInputDialog("Введите имя для поиска:");
-            if (name != null && !name.isEmpty()) {
-                dbManager.searchByName(name);
+            String tableName = JOptionPane.showInputDialog("Введите имя таблицы:");
+            if (tableName != null && !tableName.isEmpty()) {
+                String name = JOptionPane.showInputDialog("Введите имя для поиска:");
+                dbManager.searchByName(tableName, name);
             }
         });
 
         updateBtn.addActionListener(e -> {
+            String tableName = JOptionPane.showInputDialog("Введите имя таблицы:");
+            if (tableName == null || tableName.isEmpty()) return;
             String oldName = JOptionPane.showInputDialog("Введите текущее имя:");
             if (oldName == null || oldName.isEmpty()) return;
             String newName = JOptionPane.showInputDialog("Введите новое имя:");
             if (newName == null || newName.isEmpty()) return;
-            String ageStr = JOptionPane.showInputDialog("Введите новый возраст:");
-            if (ageStr == null || ageStr.isEmpty()) return;
-            try {
-                int age = Integer.parseInt(ageStr);
-                dbManager.updateRecord(oldName, newName, age);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(null, "Ошибка: возраст должен быть числом!");
-            }
+            String description = JOptionPane.showInputDialog("Введите новое описание:");
+            if (description == null || description.isEmpty()) return;
+            dbManager.updateRecord(tableName, oldName, newName, description);
         });
 
         deleteBtn.addActionListener(e -> {
-            String name = JOptionPane.showInputDialog("Введите имя для удаления:");
-            if (name != null && !name.isEmpty()) {
-                dbManager.deleteByName(name);
+            String tableName = JOptionPane.showInputDialog("Введите имя таблицы:");
+            if (tableName != null && !tableName.isEmpty()) {
+                String name = JOptionPane.showInputDialog("Введите имя для удаления:");
+                dbManager.deleteByName(tableName, name);
             }
         });
 
@@ -84,15 +116,19 @@ public class MainGUI extends JFrame {
             }
         });
 
-        add(createDbBtn);
-        add(deleteDbBtn);
-        add(clearTableBtn);
-        add(addRecordBtn);
-        add(searchBtn);
-        add(updateBtn);
-        add(deleteBtn);
-        add(createTableBtn);
-        add(dropTableBtn);
+        buttonPanel.add(selectDbBtn);
+        buttonPanel.add(createDbBtn);
+        buttonPanel.add(deleteDbBtn);
+        buttonPanel.add(clearTableBtn);
+        buttonPanel.add(addRecordBtn);
+        buttonPanel.add(searchBtn);
+        buttonPanel.add(updateBtn);
+        buttonPanel.add(deleteBtn);
+        buttonPanel.add(createTableBtn);
+        buttonPanel.add(dropTableBtn);
+
+        add(buttonPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     public static void main(String[] args) {

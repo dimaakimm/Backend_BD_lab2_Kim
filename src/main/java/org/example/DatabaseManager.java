@@ -1,98 +1,96 @@
 package org.example;
+
+import javax.swing.*;
 import java.sql.*;
 
 public class DatabaseManager {
     private static final String URL = "jdbc:mysql://localhost:3306/";
-    private static final String DB_NAME = "first";
-    private static final String USER = "root"; // Укажите свой логин
-    private static final String PASSWORD = "password"; // Укажите свой пароль
-
+    private static final String USER = "root";
+    private static final String PASSWORD = "password";
     private Connection conn;
+    private JTextArea outputArea;
+    private String databaseName;
 
-    public DatabaseManager() {
+    public DatabaseManager(JTextArea outputArea, String databaseName) {
+        this.outputArea = outputArea;
+        this.databaseName = databaseName;
+        connectToDatabase();
+    }
+
+    private void connectToDatabase() {
         try {
-            conn = DriverManager.getConnection(URL + DB_NAME, USER, PASSWORD);
-            System.out.println("✅ Подключение к базе данных успешно!");
+            conn = DriverManager.getConnection(URL + databaseName, USER, PASSWORD);
+            appendOutput("✅ Подключение к базе данных " + databaseName + " успешно!\n");
         } catch (SQLException e) {
-            System.out.println("Ошибка подключения: " + e.getMessage());
+            appendOutput("Ошибка подключения: " + e.getMessage() + "\n");
         }
     }
 
-    public void createDatabase() {
-        executeProcedure("{CALL create_database()}");
+    public static void createDatabase(String dbName) {
+        executeGeneralUpdate("CREATE DATABASE IF NOT EXISTS " + dbName);
     }
 
-    public void deleteDatabase() {
-        executeProcedure("{CALL delete_database()}");
-    }
-
-    public void clearTable() {
-        executeProcedure("{CALL clear_table()}");
-    }
-
-    public void addRecord(String name, int age) {
-        try (CallableStatement stmt = conn.prepareCall("{CALL add_record(?, ?)}")) {
-            stmt.setString(1, name);
-            stmt.setInt(2, age);
-            stmt.execute();
-            System.out.println("✅ Запись добавлена");
-        } catch (SQLException e) {
-            System.out.println("Ошибка добавления: " + e.getMessage());
-        }
-    }
-
-    public void searchByName(String name) {
-        try (CallableStatement stmt = conn.prepareCall("{CALL search_by_name(?)}")) {
-            stmt.setString(1, name);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                System.out.println("👤 Найдено: " + rs.getString("name") + ", " + rs.getInt("age"));
-            }
-        } catch (SQLException e) {
-            System.out.println("Ошибка поиска: " + e.getMessage());
-        }
-    }
-
-    public void updateRecord(String oldName, String newName, int newAge) {
-        try (CallableStatement stmt = conn.prepareCall("{CALL update_record(?, ?, ?)}")) {
-            stmt.setString(1, oldName);
-            stmt.setString(2, newName);
-            stmt.setInt(3, newAge);
-            stmt.execute();
-            System.out.println("✅ Запись обновлена");
-        } catch (SQLException e) {
-            System.out.println("Ошибка обновления: " + e.getMessage());
-        }
-    }
-
-    public void deleteByName(String name) {
-        executeProcedureWithParam("{CALL delete_by_name(?)}", name);
+    public static void deleteDatabase(String dbName) {
+        executeGeneralUpdate("DROP DATABASE IF EXISTS " + dbName);
     }
 
     public void createTable(String tableName) {
-        executeProcedureWithParam("{CALL create_table(?)}", tableName);
+        executeUpdate("CREATE TABLE IF NOT EXISTS `" + tableName + "` (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), description TEXT)");
     }
 
     public void dropTable(String tableName) {
-        executeProcedureWithParam("{CALL drop_table(?)}", tableName);
+        executeUpdate("DROP TABLE IF EXISTS `" + tableName + "`");
     }
 
-    private void executeProcedure(String sql) {
-        try (CallableStatement stmt = conn.prepareCall(sql)) {
-            stmt.execute();
-            System.out.println("✅ Операция выполнена");
+    public void clearTable(String tableName) {
+        executeUpdate("DELETE FROM `" + tableName + "`");
+    }
+
+    public void addRecord(String tableName, String name, String description) {
+        executeUpdate("INSERT INTO `" + tableName + "` (name, description) VALUES ('" + name + "', '" + description + "')");
+    }
+
+    public void searchByName(String tableName, String name) {
+        executeQuery("SELECT * FROM `" + tableName + "` WHERE name = '" + name + "'");
+    }
+
+    public void updateRecord(String tableName, String oldName, String newName, String description) {
+        executeUpdate("UPDATE `" + tableName + "` SET name = '" + newName + "', description = '" + description + "' WHERE name = '" + oldName + "'");
+    }
+
+    public void deleteByName(String tableName, String name) {
+        executeUpdate("DELETE FROM `" + tableName + "` WHERE name = '" + name + "'");
+    }
+
+    private void executeUpdate(String query) {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(query);
+            appendOutput("✅ Операция выполнена\n");
+        } catch (SQLException e) {
+            appendOutput("Ошибка выполнения: " + e.getMessage() + "\n");
+        }
+    }
+
+    private void executeQuery(String query) {
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+            while (rs.next()) {
+                appendOutput("👤 Найдено: " + rs.getString("name") + ", " + rs.getString("description") + "\n");
+            }
+        } catch (SQLException e) {
+            appendOutput("Ошибка выполнения: " + e.getMessage() + "\n");
+        }
+    }
+
+    private static void executeGeneralUpdate(String query) {
+        try (Connection tempConn = DriverManager.getConnection(URL, USER, PASSWORD);
+             Statement stmt = tempConn.createStatement()) {
+            stmt.executeUpdate(query);
         } catch (SQLException e) {
             System.out.println("Ошибка выполнения: " + e.getMessage());
         }
     }
 
-    private void executeProcedureWithParam(String sql, String param) {
-        try (CallableStatement stmt = conn.prepareCall(sql)) {
-            stmt.setString(1, param);
-            stmt.execute();
-            System.out.println("✅ Операция выполнена");
-        } catch (SQLException e) {
-            System.out.println("Ошибка выполнения: " + e.getMessage());
-        }
+    private void appendOutput(String message) {
+        SwingUtilities.invokeLater(() -> outputArea.append(message));
     }
 }
