@@ -18,6 +18,11 @@
             <artifactId>commons-csv</artifactId>
             <version>1.8</version> <!-- Можете использовать актуальную версию -->
         </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version> <!-- Используйте актуальную версию -->
+        </dependency>
     </dependencies>
     <properties>
         <maven.compiler.source>22</maven.compiler.source>
