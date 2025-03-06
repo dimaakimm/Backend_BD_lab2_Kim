@@ -19,11 +19,12 @@ public class MainGUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(outputArea);
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(10, 1));
+        buttonPanel.setLayout(new GridLayout(12, 1));
 
         JButton selectDbBtn = new JButton("Выбрать базу данных");
         JButton createDbBtn = new JButton("Создать базу данных");
         JButton deleteDbBtn = new JButton("Удалить базу данных");
+        JButton listDbBtn = new JButton("Показать все базы данных");
         JButton clearTableBtn = new JButton("Очистить таблицу");
         JButton addRecordBtn = new JButton("Добавить запись");
         JButton searchBtn = new JButton("Поиск по имени");
@@ -31,6 +32,7 @@ public class MainGUI extends JFrame {
         JButton deleteBtn = new JButton("Удалить по имени");
         JButton createTableBtn = new JButton("Создать таблицу");
         JButton dropTableBtn = new JButton("Удалить таблицу");
+        JButton listTablesBtn = new JButton("Показать таблицы базы данных");
 
         selectDbBtn.addActionListener(e -> {
             String dbName = JOptionPane.showInputDialog("Введите имя базы данных для работы:");
@@ -56,6 +58,8 @@ public class MainGUI extends JFrame {
                 outputArea.append("Удалена база данных: " + dbName + "\n");
             }
         });
+
+        listDbBtn.addActionListener(e -> dbManager.listDatabases());
 
         clearTableBtn.addActionListener(e -> {
             String tableName = JOptionPane.showInputDialog("Введите имя таблицы для очистки:");
@@ -116,9 +120,12 @@ public class MainGUI extends JFrame {
             }
         });
 
+        listTablesBtn.addActionListener(e -> dbManager.listTables());
+
         buttonPanel.add(selectDbBtn);
         buttonPanel.add(createDbBtn);
         buttonPanel.add(deleteDbBtn);
+        buttonPanel.add(listDbBtn);
         buttonPanel.add(clearTableBtn);
         buttonPanel.add(addRecordBtn);
         buttonPanel.add(searchBtn);
@@ -126,6 +133,7 @@ public class MainGUI extends JFrame {
         buttonPanel.add(deleteBtn);
         buttonPanel.add(createTableBtn);
         buttonPanel.add(dropTableBtn);
+        buttonPanel.add(listTablesBtn);
 
         add(buttonPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
